@@ -10,7 +10,7 @@ const FIM = new Date('2026-11-28T23:59:00-03:00');
 const SITE = ''; // opcional: endereço do site no GitHub Pages (link "ver placar" no e-mail)
 const JOGOS = [
   'ECO', 'Fuga da Escola', 'Snake Royale', 'Bolo Stack',
-  'Pixel Valley', 'The Last Message', 'O Último Sobrevivente'
+  'Pixel Valley', 'The Last Message', 'O Último Sobrevivente', 'Cidade do Caos'
 ];
 const ABA = 'Votos';
 const CAB = ['email', 'jogo', 'token', 'status', 'criado_em', 'confirmado_em'];
