@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Votação dos Jogos — DS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* Configuração no <script> logo abaixo — veja LEIA-ME */
+</style>
+<script>
+const CONFIG = {
+  // URL do App da Web do Google Apps Script (termina em /exec)
+  API_URL: "",
+  // Fim da votação (horário de Brasília) — igual ao FIM do Code.gs
+  FIM: "2026-11-28T23:59:00-03:00",
+  // Intervalo de atualização do placar (segundos)
+  ATUALIZA: 20
+};
+
+// link: endereço do jogo (deixe "" se ainda não tiver)
+// Os nomes precisam ser IGUAIS à lista JOGOS do Code.gs
+const JOGOS = [
+  { nome: "ECO",                   equipe: 1, link: "https://brayanpaolopaula-max.github.io/ECO-o-arquivo-perdido/", img: "img/eco.jpg",          cor: "#e0453a", genero: "Suspense e terror" },
+  { nome: "Fuga da Escola",        equipe: 2, link: "https://felipemouramorais-cell.github.io/fuga-da-escola./", img: "img/fuga.jpg",         cor: "#f4c430", genero: "Escape 3D" },
+  { nome: "Snake Royale",          equipe: 3, link: "https://xjoaomarcelino.github.io/Snake-Royale/", img: "img/snake.jpg",        cor: "#2ee6a6", genero: "Arcade" },
+  { nome: "Bolo Stack",            equipe: 4, link: "https://blockstack123-a11y.github.io/blockstack1/", img: "img/bolo.jpg",         cor: "#ff6fb5", genero: "Empilhamento" },
+  { nome: "Pixel Valley",          equipe: 5, link: "https://michellereis-lgtm.github.io/Pixel-Valley-A-Ultima-Colheita/", img: "img/pixel.jpg",        cor: "#7fc8ff", genero: "Pixel art / fazenda" },
+  { nome: "The Last Message",      equipe: 6, link: "https://cavalheirogabriel-art.github.io/socorro/", img: "img/lastmsg.jpg",      cor: "#a07bff", genero: "Mistério" },
+  { nome: "O Último Sobrevivente", equipe: 7, link: "https://marcosfigueroa-arch.github.io/o-ultimo-sobrevivente001/", img: "img/sobrevivente.jpg", cor: "#ff9a3c", genero: "Sobrevivência" }
+];
+</script>
+<style>
+:root{
+  --bg:#0b0d1a; --bg2:#141832; --card:#1a1f3d; --line:#2a3160;
+  --txt:#eef0ff; --mut:#9aa3d6; --acc:#ffd23f; --ok:#2ee6a6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+body{background:radial-gradient(ellipse at top,#1d2350 0%,var(--bg) 60%) fixed;color:var(--txt);
+  font-family:Inter,system-ui,sans-serif;min-height:100vh;padding:0 16px 48px}
+.wrap{max-width:1080px;margin:0 auto}
+header{text-align:center;padding:32px 0 18px}
+.kicker{font-family:"Press Start 2P",monospace;font-size:10px;color:var(--acc);letter-spacing:2px}
+h1{font-family:"Press Start 2P",monospace;font-size:clamp(20px,5vw,36px);line-height:1.35;margin:14px 0 10px;
+  text-shadow:0 0 18px rgba(255,210,63,.35)}
+.sub{color:var(--mut);font-size:15px}
+.prazo{display:inline-block;margin-top:14px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;
+  background:var(--bg2);font-size:14px;font-weight:600}
+.prazo b{color:var(--acc)}
+.tabs{display:flex;gap:8px;justify-content:center;margin:20px 0 24px}
+.tab{font-family:"Press Start 2P",monospace;font-size:11px;padding:12px 18px;border-radius:10px;border:2px solid var(--line);
+  background:var(--bg2);color:var(--mut);cursor:pointer}
+.tab[aria-selected=true]{border-color:var(--acc);color:var(--bg);background:var(--acc)}
+.aviso{background:#3a2a10;border:1px solid #7a5a1a;color:#ffe2a8;padding:12px 14px;border-radius:10px;
+  font-size:14px;margin-bottom:18px;display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;
+  transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-3px);border-color:var(--c)}
+.thumb{aspect-ratio:4/3;background:#000 center/cover no-repeat;border-bottom:3px solid var(--c);cursor:zoom-in}
+.info{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.eq{font-size:12px;color:var(--mut);font-weight:600}
+.nome{font-weight:800;font-size:18px}
+.gen{font-size:13px;color:var(--mut)}
+.acoes{margin-top:auto;display:flex;gap:8px}
+.acoes>a{flex:1}
+.jogar{padding:12px;border:2px solid var(--c);border-radius:10px;font-family:"Press Start 2P",monospace;font-size:11px;color:var(--c);text-decoration:none;text-align:center}
+.votar{padding:12px;border:0;cursor:pointer;border-radius:10px;font-family:"Press Start 2P",monospace;font-size:11px;
+  background:var(--c);color:#0b0d1a;cursor:pointer;text-decoration:none;text-align:center}
+.votar:disabled{background:#3a3f63;color:#8088b8;pointer-events:none}
+.ja{font-size:13px;color:var(--ok);text-align:center;margin:-4px 0 14px;display:none}
+
+/* Resultados */
+.placar{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:20px}
+.ptop{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.total{font-family:"Press Start 2P",monospace;font-size:14px}
+.total b{color:var(--acc)}
+.upd{font-size:13px;color:var(--mut)}
+.linha{display:grid;grid-template-columns:34px 52px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.linha:first-of-type{border-top:0}
+.pos{font-family:"Press Start 2P",monospace;font-size:13px;color:var(--mut);text-align:center}
+.linha.lider .pos{color:var(--acc)}
+.mini{width:52px;height:40px;border-radius:6px;background:#000 center/cover}
+.bar-top{display:flex;justify-content:space-between;gap:8px;font-size:15px;margin-bottom:6px}
+.bar-top b{font-weight:800}
+.bar-top span{color:var(--mut);white-space:nowrap}
+.trilho{height:14px;background:#0e1230;border-radius:999px;overflow:hidden}
+.barra{height:100%;width:0;border-radius:999px;background:var(--c);transition:width .8s ease}
+.vazio{color:var(--mut);text-align:center;padding:30px 0}
+
+/* Modo telão: ?telao=1 */
+body.telao header,body.telao .tabs,body.telao #votacao{display:none}
+body.telao{padding-top:24px}
+body.telao .placar{max-width:1200px;margin:0 auto;font-size:120%}
+body.telao .bar-top{font-size:22px}
+body.telao .trilho{height:22px}
+body.telao .mini{width:80px;height:60px}
+body.telao .linha{grid-template-columns:50px 80px 1fr}
+.tit-telao{display:none;font-family:"Press Start 2P",monospace;text-align:center;font-size:clamp(18px,3vw,30px);margin-bottom:22px;color:var(--acc)}
+body.telao .tit-telao{display:block}
+
+dialog{border:0;padding:0;background:transparent;max-width:92vw;max-height:92vh;margin:auto}
+dialog::backdrop{background:rgba(0,0,0,.85)}
+dialog img{max-width:92vw;max-height:88vh;display:block;border-radius:10px}
+#voto{background:var(--card);border:2px solid var(--line);border-radius:16px;color:var(--txt);width:min(420px,92vw);padding:22px}
+#voto h2{font-family:"Press Start 2P",monospace;font-size:14px;line-height:1.5;margin-bottom:6px}
+#voto .esc{font-size:20px;font-weight:800;color:var(--c);margin-bottom:14px}
+#voto label{display:block;font-size:14px;color:var(--mut);margin-bottom:6px}
+#voto input{width:100%;padding:12px;border-radius:10px;border:2px solid var(--line);background:#0e1230;color:var(--txt);font-size:16px}
+#voto input:focus{outline:none;border-color:var(--c)}
+#voto .row{display:flex;gap:8px;margin-top:16px}
+#voto .row button{flex:1;padding:12px;border-radius:10px;font-family:"Press Start 2P",monospace;font-size:11px;cursor:pointer}
+#cancelar{background:transparent;border:2px solid var(--line);color:var(--mut)}
+#enviar{background:var(--c);border:0;color:#0b0d1a}
+#enviar:disabled{opacity:.6;cursor:wait}
+#msg{margin-top:14px;font-size:15px;line-height:1.45}
+#msg.ok{color:var(--ok)} #msg.erro{color:#ff8a80}
+.lgpd{font-size:12px;color:var(--mut);margin-top:10px}
+footer{text-align:center;color:var(--mut);font-size:12px;margin-top:30px}
+@media (max-width:480px){.linha{grid-template-columns:26px 44px 1fr;gap:8px}.mini{width:44px;height:34px}.bar-top{font-size:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">DESENVOLVIMENTO DE SISTEMAS</div>
+    <h1>VOTE NO MELHOR JOGO</h1>
+    <p class="sub">7 equipes, 7 jogos. Jogue pelo QR do cartaz e escolha o seu favorito.</p>
+    <div class="prazo" id="prazo"></div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-aba="votacao">VOTAR</button>
+    <button class="tab" role="tab" aria-selected="false" data-aba="resultados">PLACAR</button>
+  </div>
+
+  <div class="aviso" id="aviso"></div>
+
+  <section id="votacao">
+    <p class="ja" id="ja">Confira seu e-mail e clique no link para o voto valer.</p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="resultados" hidden>
+    <div class="placar">
+      <div class="tit-telao">PLACAR AO VIVO</div>
+      <div class="ptop">
+        <div class="total">Votos: <b id="total">0</b></div>
+        <div class="upd" id="upd">carregando…</div>
+      </div>
+      <div id="linhas"></div>
+    </div>
+  </section>
+
+  <footer>Colégio Estadual Euclides da Cunha · Matelândia/PR · 1 voto confirmado por e-mail</footer>
+</div>
+
+<dialog id="voto">
+  <form id="fvoto">
+    <h2>CONFIRMAR VOTO</h2>
+    <div class="esc" id="escolha"></div>
+    <label for="email">Seu e-mail (vamos mandar um link de confirmação)</label>
+    <input id="email" type="email" required autocomplete="email" inputmode="email" placeholder="nome@exemplo.com">
+    <div class="row"><button type="button" id="cancelar">VOLTAR</button><button type="submit" id="enviar">ENVIAR</button></div>
+    <div id="msg" role="status"></div>
+    <p class="lgpd">O e-mail serve só para garantir 1 voto por pessoa e é apagado depois do resultado.</p>
+  </form>
+</dialog>
+<dialog id="zoom"><img id="zoomImg" alt=""></dialog>
+
+<script>
+const fim = new Date(CONFIG.FIM);
+const encerrada = () => new Date() > fim;
+const fmt = d => d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"});
+const params = new URLSearchParams(location.search);
+const $ = id => document.getElementById(id);
+
+// ---------- Prazo ----------
+function atualizaPrazo(){
+  const el = $("prazo");
+  if (encerrada()){ el.innerHTML = "Votação <b>encerrada</b> · resultado final no placar"; return; }
+  const ms = fim - new Date(), d = Math.floor(ms/864e5), h = Math.floor(ms%864e5/36e5);
+  el.innerHTML = `Votação aberta até <b>${fmt(fim)}</b> · faltam ${d}d ${h}h`;
+}
+
+// ---------- Aviso de configuração ----------
+if (!CONFIG.API_URL){
+  const a = $("aviso");
+  a.textContent = "Configuração pendente: cole a URL do Apps Script em CONFIG.API_URL (veja LEIA-ME). Enquanto isso, votar e placar não funcionam.";
+  a.style.display = "block";
+}
+
+// ---------- Cards ----------
+let escolhido = null;
+const grid = $("grid");
+JOGOS.forEach(j => {
+  const c = document.createElement("article");
+  c.className = "card"; c.style.setProperty("--c", j.cor);
+  c.innerHTML = `
+    <div class="thumb" role="button" tabindex="0" style="background-image:url('${j.img}')"></div>
+    <div class="info">
+      <div class="eq">EQUIPE ${j.equipe}</div>
+      <div class="nome"></div>
+      <div class="gen"></div>
+      <div class="acoes">
+        ${j.link ? `<a class="jogar" target="_blank" rel="noopener" href="${j.link}">JOGAR</a>` : ""}
+        <button class="votar" type="button">${encerrada() ? "ENCERRADA" : "VOTAR"}</button>
+      </div>
+    </div>`;
+  c.querySelector(".nome").textContent = j.nome;
+  c.querySelector(".gen").textContent = j.genero;
+  const th = c.querySelector(".thumb");
+  th.setAttribute("aria-label", "Ver cartaz de " + j.nome);
+  const zoom = () => { $("zoomImg").src = j.img; $("zoom").showModal(); };
+  th.addEventListener("click", zoom);
+  th.addEventListener("keydown", e => { if (e.key === "Enter") zoom(); });
+  const b = c.querySelector(".votar");
+  b.disabled = encerrada() || !CONFIG.API_URL;
+  b.addEventListener("click", () => abreVoto(j));
+  grid.appendChild(c);
+});
+$("zoom").addEventListener("click", e => e.currentTarget.close());
+
+// ---------- Janela de voto ----------
+function abreVoto(j){
+  escolhido = j;
+  const d = $("voto");
+  d.style.setProperty("--c", j.cor);
+  $("escolha").textContent = j.nome;
+  $("msg").textContent = ""; $("msg").className = "";
+  $("enviar").disabled = false; $("enviar").textContent = "ENVIAR";
+  try { const e = localStorage.getItem("email"); if (e) $("email").value = e; } catch(_){}
+  d.showModal(); $("email").focus();
+}
+$("cancelar").addEventListener("click", () => $("voto").close());
+$("fvoto").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const email = $("email").value.trim().toLowerCase();
+  const msg = $("msg");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ msg.className = "erro"; msg.textContent = "Digite um e-mail válido."; return; }
+  $("enviar").disabled = true; $("enviar").textContent = "ENVIANDO…";
+  msg.className = ""; msg.textContent = "";
+  try {
+    // text/plain evita a checagem CORS prévia que o Apps Script não responde
+    const r = await fetch(CONFIG.API_URL, { method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ acao:"votar", email, jogo: escolhido.nome }) });
+    const d = await r.json();
+    msg.className = d.ok ? "ok" : "erro"; msg.textContent = d.msg;
+    if (d.ok){
+      try { localStorage.setItem("email", email); } catch(_){}
+      $("ja").style.display = "block";
+      $("enviar").textContent = "ENVIADO";
+    } else { $("enviar").disabled = false; $("enviar").textContent = "ENVIAR"; }
+  } catch(e){
+    msg.className = "erro"; msg.textContent = "Não consegui falar com o servidor. Tente de novo em instantes.";
+    $("enviar").disabled = false; $("enviar").textContent = "ENVIAR";
+  }
+});
+
+// ---------- Abas ----------
+function mostra(aba){
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.aba === aba));
+  $("votacao").hidden = aba !== "votacao";
+  $("resultados").hidden = aba !== "resultados";
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => { mostra(t.dataset.aba); history.replaceState(null,"","#"+t.dataset.aba); }));
+if (location.hash === "#resultados" || encerrada()) mostra("resultados");
+if (params.get("telao") === "1"){ document.body.classList.add("telao"); mostra("resultados"); }
+
+// ---------- Placar ----------
+function render(votos, total, quando){
+  $("total").textContent = total;
+  $("upd").textContent = quando;
+  const lista = JOGOS.map(j => ({...j, v: votos[j.nome] || 0})).sort((a,b) => b.v - a.v || a.equipe - b.equipe);
+  const max = Math.max(1, ...lista.map(j => j.v));
+  const box = $("linhas"); box.innerHTML = "";
+  lista.forEach((j,i) => {
+    const pct = total ? Math.round(j.v / total * 100) : 0;
+    const l = document.createElement("div");
+    l.className = "linha" + (i === 0 && j.v > 0 ? " lider" : ""); l.style.setProperty("--c", j.cor);
+    l.innerHTML = `<div class="pos">${i+1}º</div><div class="mini" style="background-image:url('${j.img}')"></div>
+      <div><div class="bar-top"><b></b><span>${j.v} ${j.v === 1 ? "voto" : "votos"} · ${pct}%</span></div>
+      <div class="trilho"><div class="barra"></div></div></div>`;
+    l.querySelector("b").textContent = j.nome;
+    box.appendChild(l);
+    requestAnimationFrame(() => l.querySelector(".barra").style.width = (j.v / max * 100) + "%");
+  });
+}
+async function carrega(){
+  if (!CONFIG.API_URL){ render({}, 0, "aguardando configuração"); return; }
+  try {
+    const r = await fetch(CONFIG.API_URL + "?acao=resultados&t=" + Date.now(), {cache:"no-store"});
+    const d = await r.json();
+    if (!d.ok) throw new Error();
+    const hora = new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    render(d.votos, d.total, (d.encerrada ? "Resultado final · " : "Só votos confirmados · atualizado às ") + hora);
+  } catch(e){
+    $("upd").textContent = "Não consegui ler o placar agora. Tentando de novo…";
+  }
+}
+
+atualizaPrazo(); setInterval(atualizaPrazo, 60000);
+carrega(); setInterval(carrega, CONFIG.ATUALIZA * 1000);
+</script>
+</body>
+</html>
