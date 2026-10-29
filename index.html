@@ -30,6 +30,12 @@ const JOGOS = [
   { nome: "The Last Message",      equipe: 6, link: "https://cavalheirogabriel-art.github.io/socorro/", img: "img/lastmsg.jpg",      cor: "#a07bff", genero: "Mistério" },
   { nome: "O Último Sobrevivente", equipe: 7, link: "https://marcosfigueroa-arch.github.io/o-ultimo-sobrevivente001/", img: "img/sobrevivente.jpg", cor: "#ff9a3c", genero: "Sobrevivência" }
 ];
+
+// Fora da disputa: aparecem com JOGAR, sem voto e fora do placar
+const EXTRAS = [
+  { nome: "Couro & Asfalto", selo: "JOGO DO PROFESSOR", link: "https://mdkirst.github.io/Road-Motoclubes-Brasil/", img: "img/couro.jpg", cor: "#d9a441", genero: "Corrida de moto na BR-277" },
+  { nome: "Cidade do Caos", selo: "JOGO CONVIDADO", link: "https://daviluizkajmirski.github.io/cidade-do-caos-/", img: "img/caos.jpg", cor: "#ff7a3d", genero: "Mundo aberto no Brasil" }
+];
 </script>
 <style>
 :root{
@@ -118,6 +124,8 @@ dialog img{max-width:92vw;max-height:88vh;display:block;border-radius:10px}
 #msg{margin-top:14px;font-size:15px;line-height:1.45}
 #msg.ok{color:var(--ok)} #msg.erro{color:#ff8a80}
 .lgpd{font-size:12px;color:var(--mut);margin-top:10px}
+.extra-t{font-family:"Press Start 2P",monospace;font-size:13px;color:var(--mut);margin:34px 0 14px;text-align:center}
+.extra-t small{display:block;font-family:Inter,sans-serif;font-size:13px;margin-top:8px}
 footer{text-align:center;color:var(--mut);font-size:12px;margin-top:30px}
 @media (max-width:480px){.linha{grid-template-columns:26px 44px 1fr;gap:8px}.mini{width:44px;height:34px}.bar-top{font-size:14px}}
 </style>
@@ -141,6 +149,8 @@ footer{text-align:center;color:var(--mut);font-size:12px;margin-top:30px}
   <section id="votacao">
     <p class="ja" id="ja">Confira seu e-mail e clique no link para o voto valer.</p>
     <div class="grid" id="grid"></div>
+    <h2 class="extra-t">FORA DA DISPUTA<small>Para jogar e se inspirar. Não recebe votos.</small></h2>
+    <div class="grid" id="extra"></div>
   </section>
 
   <section id="resultados" hidden>
@@ -220,6 +230,23 @@ JOGOS.forEach(j => {
   b.disabled = encerrada() || !CONFIG.API_URL;
   b.addEventListener("click", () => abreVoto(j));
   grid.appendChild(c);
+});
+EXTRAS.forEach(j => {
+  const c = document.createElement("article");
+  c.className = "card"; c.style.setProperty("--c", j.cor);
+  c.innerHTML = `
+    <div class="thumb" role="button" tabindex="0" style="background-image:url('${j.img}')"></div>
+    <div class="info">
+      <div class="eq"></div><div class="nome"></div><div class="gen"></div>
+      <div class="acoes"><a class="jogar" target="_blank" rel="noopener" href="${j.link}">JOGAR</a></div>
+    </div>`;
+  c.querySelector(".eq").textContent = j.selo;
+  c.querySelector(".nome").textContent = j.nome;
+  c.querySelector(".gen").textContent = j.genero;
+  const th = c.querySelector(".thumb");
+  th.setAttribute("aria-label", "Ver cartaz de " + j.nome);
+  th.addEventListener("click", () => { $("zoomImg").src = j.img; $("zoom").showModal(); });
+  $("extra").appendChild(c);
 });
 $("zoom").addEventListener("click", e => e.currentTarget.close());
 
